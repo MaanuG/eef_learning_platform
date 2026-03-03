@@ -5,8 +5,6 @@ from database import engine, Base, SessionLocal
 import models
 import auth_utils
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="Empowering Education Foundation API")
 
 app.add_middleware(
@@ -27,6 +25,11 @@ app.include_router(attendance.router, prefix="/api/attendance", tags=["attendanc
 app.include_router(messages.router, prefix="/api/messages", tags=["messages"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["notifications"])
 
+@app.on_event("startup")
+async def startup_event():
+    Base.metadata.create_all(bind=engine)
+    create_default_admin()
+
 def create_default_admin():
     db = SessionLocal()
     try:
@@ -42,10 +45,12 @@ def create_default_admin():
             db.add(admin)
             db.commit()
             print("✅ Default admin created: admin@eef.org / Admin@123!")
+        else:
+            print("✅ Admin already exists")
+    except Exception as e:
+        print(f"❌ Error creating admin: {e}")
     finally:
         db.close()
-
-create_default_admin()
 
 @app.get("/")
 def root():
