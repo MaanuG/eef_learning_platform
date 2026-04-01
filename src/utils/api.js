@@ -1,17 +1,32 @@
 import axios from 'axios';
 
 /**
- * Backend mounts all routes under `/api/...` (e.g. `/api/auth/login`).
- * If REACT_APP_API_URL is set to the server root only (e.g. http://localhost:8000),
- * we append `/api` so requests are not sent to `/auth/login` (404).
- * If unset, use same-origin `/api` (CRA dev proxy forwards to the backend).
+ * Backend serves under `/api/...` (e.g. `/api/auth/login`).
+ * Resolution order:
+ * 1) window.__EEF_API_ORIGIN__ — set by public/api-config.js (see postbuild script for Render).
+ * 2) REACT_APP_API_URL — baked in at `react-scripts build`.
+ * 3) `/api` — CRA dev proxy → backend; production needs (1) or (2) when API is on another host.
  */
+function stripTrailingSlashes(s) {
+  return String(s).replace(/\/+$/, '');
+}
+
+function originToApiBase(origin) {
+  let base = stripTrailingSlashes(origin);
+  if (!base.endsWith('/api')) base = `${base}/api`;
+  return base;
+}
+
 function resolveApiBaseURL() {
+  if (typeof window !== 'undefined') {
+    const runtime = window.__EEF_API_ORIGIN__;
+    if (runtime != null && String(runtime).trim() !== '') {
+      return originToApiBase(runtime);
+    }
+  }
   const raw = process.env.REACT_APP_API_URL;
   if (raw != null && String(raw).trim() !== '') {
-    let base = String(raw).trim().replace(/\/+$/, '');
-    if (!base.endsWith('/api')) base = `${base}/api`;
-    return base;
+    return originToApiBase(raw);
   }
   return '/api';
 }
@@ -34,7 +49,7 @@ export function formatApiError(err, fallback = 'Request failed') {
   const status = err?.response?.status;
   const d = err?.response?.data?.detail;
   if (status === 404 && (d == null || d === 'Not Found')) {
-    return 'API not found. Use REACT_APP_API_URL=http://127.0.0.1:8000 (no /api needed; it is added), or run the backend on port 8000 with npm start’s proxy.';
+    return 'API not found. If the API is on another domain (e.g. Vercel), set API_ORIGIN or REACT_APP_API_URL on Render to that URL (origin only, no /api).';
   }
   if (err?.code === 'ECONNABORTED' || err?.message?.toLowerCase().includes('timeout')) {
     return 'Request timed out. Is the API server running?';
