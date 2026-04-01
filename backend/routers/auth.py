@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from sqlalchemy import func
 from database import get_db
 import models, auth_utils
 import re
@@ -10,6 +11,8 @@ router = APIRouter()
 AVATAR_COLORS = ["#0d9488","#0891b2","#7c3aed","#db2777","#ea580c","#65a30d","#dc2626","#2563eb"]
 
 class RegisterRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     full_name: str
     email: EmailStr
     password: str
@@ -29,10 +32,23 @@ class RegisterRequest(BaseModel):
         return v
 
 class LoginRequest(BaseModel):
+    """Login accepts the same admin@eef.org style emails as seed-admin; normalize input so copy/paste and casing do not trigger 422."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     email: EmailStr
     password: str
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_login_email(cls, v):
+        if v is None:
+            return v
+        return str(v).strip().lower()
+
 class CreateAdminRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     full_name: str
     email: EmailStr
     password: str
@@ -73,7 +89,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
 
 @router.post("/login")
 def login(req: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == req.email).first()
+    user = db.query(models.User).filter(func.lower(models.User.email) == req.email.lower()).first()
     if not user or not auth_utils.verify_password(req.password, user.hashed_password):
         raise HTTPException(401, "Invalid credentials")
     
@@ -83,15 +99,16 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(403, "Account has been rejected")
     
     token = auth_utils.create_token({"sub": str(user.id)})
+    role_val = user.role.value if isinstance(user.role, models.UserRole) else str(user.role)
     return {
         "access_token": token,
         "user": {
             "id": user.id,
             "full_name": user.full_name,
             "email": user.email,
-            "role": user.role,
-            "avatar_color": user.avatar_color
-        }
+            "role": role_val,
+            "avatar_color": user.avatar_color or "#0d9488",
+        },
     }
 
 @router.post("/create-admin")

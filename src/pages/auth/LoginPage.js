@@ -85,8 +85,9 @@ export default function LoginPage() {
         </div>
 
         <div style={{ marginTop: 20, padding: '12px 16px', background: '#f0fdfa', borderRadius: 8, fontSize: 12, color: '#0f766e', border: '1px solid #99f6e4' }}>
-          <strong>Default Admin:</strong> admin@eef.org / Admin@123!<br />
-          <span style={{ color: '#94a3b8' }}>(Run /api/auth/seed-admin first)</span>
+          <strong>Default admin (use as email, not username):</strong> admin@eef.org<br />
+          <strong>Password:</strong> Admin@123!<br />
+          <span style={{ color: '#94a3b8' }}>POST <code style={{ fontSize: 11 }}>/api/auth/seed-admin</code> once if no admin exists yet.</span>
         </div>
       </div>
     </div>

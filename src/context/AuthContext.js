@@ -16,11 +16,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false);
 
   const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password });
-    const { access_token, user: userData } = res.data || {};
-    if (!access_token || !userData?.id) {
-      throw new Error('Invalid login response from server');
+    const res = await api.post('/auth/login', { email: email.trim(), password });
+    const { access_token, user: raw } = res.data || {};
+    if (!access_token || raw == null || raw.id == null) {
+      throw new Error('Login succeeded but the response was missing token or user. Check API deployment.');
     }
+    const role = typeof raw.role === 'string' ? raw.role : raw.role?.value ?? String(raw.role ?? '');
+    const userData = { ...raw, role };
     localStorage.setItem('token', access_token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);

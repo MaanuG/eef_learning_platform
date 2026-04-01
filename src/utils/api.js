@@ -46,6 +46,17 @@ api.interceptors.request.use((config) => {
 
 /** FastAPI may return `detail` as a string or a list of validation errors. */
 export function formatApiError(err, fallback = 'Request failed') {
+  // Plain Error from app code (not axios) — e.g. malformed login success payload
+  if (
+    err &&
+    err.response == null &&
+    err.isAxiosError !== true &&
+    typeof err.message === 'string' &&
+    err.message
+  ) {
+    return err.message;
+  }
+
   const status = err?.response?.status;
   const d = err?.response?.data?.detail;
   if (status === 404 && (d == null || d === 'Not Found')) {
@@ -60,7 +71,16 @@ export function formatApiError(err, fallback = 'Request failed') {
   if (d == null) return fallback;
   if (typeof d === 'string') return d;
   if (Array.isArray(d)) {
-    return d.map((e) => (e && typeof e.msg === 'string' ? e.msg : JSON.stringify(e))).join('; ');
+    return d
+      .map((e) => {
+        if (!e || typeof e !== 'object') return JSON.stringify(e);
+        const loc = Array.isArray(e.loc)
+          ? e.loc.filter((x) => x !== 'body' && typeof x === 'string').join('.')
+          : '';
+        const msg = typeof e.msg === 'string' ? e.msg : typeof e.message === 'string' ? e.message : JSON.stringify(e);
+        return loc ? `${loc}: ${msg}` : msg;
+      })
+      .join('; ');
   }
   return String(d);
 }
