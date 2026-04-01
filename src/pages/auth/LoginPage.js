@@ -17,8 +17,9 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const user = await login(email, password);
-      if (user.role === 'admin') navigate('/admin');
-      else if (user.role === 'educator') navigate('/educator');
+      const role = user?.role;
+      if (role === 'admin') navigate('/admin');
+      else if (role === 'educator') navigate('/educator');
       else navigate('/student');
     } catch (err) {
       const msg = formatApiError(err, 'Login failed');

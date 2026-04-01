@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import AppLayout from '../../components/AppLayout';
@@ -67,7 +67,11 @@ function VideosTab({ classroomId, canTeach }) {
                 )
               ) : (
                 <div style={{ position: 'relative', background: '#0f172a' }} onClick={() => setPlaying(v.id)}>
-                  <img src={getYoutubeThumbnail(v.youtube_url)} alt={v.title} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', opacity: 0.8, display: 'block' }} />
+                  {getYoutubeThumbnail(v.youtube_url) ? (
+                    <img src={getYoutubeThumbnail(v.youtube_url)} alt={v.title} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', opacity: 0.8, display: 'block' }} />
+                  ) : (
+                    <div style={{ width: '100%', aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: 13 }}>No preview</div>
+                  )}
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ width: 48, height: 48, background: 'rgba(13,148,136,0.9)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>▶</div>
                   </div>
@@ -127,13 +131,19 @@ function AssignmentsTab({ classroomId, canTeach }) {
   const [submitContent, setSubmitContent] = useState('');
   const [grading, setGrading] = useState(null);
   const [gradeForm, setGradeForm] = useState({ grade: '', feedback: '' });
-  const { user } = useAuth();
 
   const load = useCallback(() => { api.get(`/assignments/classroom/${classroomId}`).then(r => setAssignments(r.data)); }, [classroomId]);
   useEffect(() => { load(); }, [load]);
 
   const create = async () => {
-    await api.post('/assignments/', { classroom_id: classroomId, ...form, due_date: form.due_date || null });
+    const maxPoints = parseInt(form.max_points, 10);
+    await api.post('/assignments/', {
+      classroom_id: Number(classroomId),
+      title: form.title,
+      instructions: form.instructions,
+      due_date: form.due_date || null,
+      max_points: Number.isFinite(maxPoints) && maxPoints >= 0 ? maxPoints : 100,
+    });
     load();
     setShow(false);
     setForm({ title: '', instructions: '', due_date: '', max_points: 100 });
@@ -153,7 +163,12 @@ function AssignmentsTab({ classroomId, canTeach }) {
   };
 
   const submitGrade = async () => {
-    await api.post(`/assignments/submissions/${grading.id}/grade`, { grade: parseFloat(gradeForm.grade), feedback: gradeForm.feedback });
+    const g = parseFloat(gradeForm.grade);
+    if (!Number.isFinite(g) || g < 0) {
+      alert('Please enter a valid grade.');
+      return;
+    }
+    await api.post(`/assignments/submissions/${grading.id}/grade`, { grade: g, feedback: gradeForm.feedback });
     const r = await api.get(`/assignments/${viewing.id}/submissions`);
     setSubmissions(r.data);
     setGrading(null);
@@ -302,38 +317,53 @@ function QuizzesTab({ classroomId, canTeach }) {
   const [taking, setTaking] = useState(null);
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
-  const [timer, setTimer] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
   const [newQuiz, setNewQuiz] = useState({ title: '', description: '', time_limit_minutes: '', due_date: '', questions: [] });
   const [questions, setQuestions] = useState([]);
 
+  const takingRef = useRef(null);
+  const answersRef = useRef({});
+  const submitInFlightRef = useRef(false);
+
+  useEffect(() => { takingRef.current = taking; }, [taking]);
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+
   useEffect(() => { api.get(`/quizzes/classroom/${classroomId}`).then(r => setQuizzes(r.data)); }, [classroomId]);
+
+  const submitQuiz = useCallback(async () => {
+    const quiz = takingRef.current;
+    if (!quiz?.id || submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
+    try {
+      const r = await api.post(`/quizzes/${quiz.id}/attempt`, { answers: answersRef.current });
+      setResult(r.data);
+      setTaking(null);
+      setTimeLeft(null);
+      api.get(`/quizzes/classroom/${classroomId}`).then((res) => setQuizzes(res.data));
+    } catch (e) {
+      alert(formatApiError(e, 'Error submitting'));
+    } finally {
+      submitInFlightRef.current = false;
+    }
+  }, [classroomId]);
 
   useEffect(() => {
     if (timeLeft === null) return;
-    if (timeLeft <= 0) { submitQuiz(); return; }
-    const t = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+    if (timeLeft <= 0) {
+      void submitQuiz();
+      return;
+    }
+    const t = setTimeout(() => setTimeLeft((prev) => (prev == null ? prev : prev - 1)), 1000);
     return () => clearTimeout(t);
-  }, [timeLeft]);
+  }, [timeLeft, submitQuiz]);
 
   const startQuiz = (q) => {
+    submitInFlightRef.current = false;
     setTaking(q);
     setAnswers({});
     setResult(null);
     if (q.time_limit_minutes) setTimeLeft(q.time_limit_minutes * 60);
-  };
-
-  const submitQuiz = async () => {
-    if (!taking?.id) return;
-    try {
-      const r = await api.post(`/quizzes/${taking.id}/attempt`, { answers });
-      setResult(r.data);
-      setTaking(null);
-      setTimeLeft(null);
-      api.get(`/quizzes/classroom/${classroomId}`).then(r => setQuizzes(r.data));
-    } catch (e) {
-      alert(formatApiError(e, 'Error submitting'));
-    }
+    else setTimeLeft(null);
   };
 
   const addQuestion = () => {
@@ -341,7 +371,17 @@ function QuizzesTab({ classroomId, canTeach }) {
   };
 
   const createQuiz = async () => {
-    await api.post('/quizzes/', { classroom_id: classroomId, ...newQuiz, questions, time_limit_minutes: newQuiz.time_limit_minutes || null });
+    const tlim = newQuiz.time_limit_minutes === '' || newQuiz.time_limit_minutes == null
+      ? null
+      : Number(newQuiz.time_limit_minutes);
+    await api.post('/quizzes/', {
+      classroom_id: Number(classroomId),
+      title: newQuiz.title,
+      description: newQuiz.description || null,
+      due_date: newQuiz.due_date || null,
+      time_limit_minutes: Number.isFinite(tlim) && tlim > 0 ? tlim : null,
+      questions,
+    });
     api.get(`/quizzes/classroom/${classroomId}`).then(r => setQuizzes(r.data));
     setShow(false);
     setNewQuiz({ title: '', description: '', time_limit_minutes: '', due_date: '', questions: [] });
@@ -396,7 +436,7 @@ function QuizzesTab({ classroomId, canTeach }) {
               )}
             </div>
             <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-              {taking.questions.map((q, qi) => (
+              {(taking.questions || []).map((q, qi) => (
                 <div key={q.id} style={{ marginBottom: 24 }}>
                   <p style={{ fontWeight: 600, marginBottom: 12 }}>Q{qi+1}. {q.question}</p>
                   {q.type === 'multiple_choice' && (
@@ -748,14 +788,14 @@ function MessagesTab({ classroomId, classroom }) {
   };
 
   const send = async () => {
-    if (!newMsg.trim() || !selected) return;
+    if (!newMsg.trim() || !selected || user?.id == null) return;
     await api.post('/messages/', { receiver_id: selected.user_id, content: newMsg, classroom_id: classroomId });
     setThread([...thread, { sender_id: user.id, content: newMsg, created_at: new Date().toISOString() }]);
     setNewMsg('');
   };
 
   // Get people in this class to message
-  const contacts = user.role === 'student'
+  const contacts = user?.role === 'student'
     ? (classroom?.educators || []).map(e => ({ user_id: e.id, user_name: e.full_name, avatar_color: e.avatar_color, role: 'educator' }))
     : (classroom?.students || []).map(s => ({ user_id: s.id, user_name: s.full_name, avatar_color: s.avatar_color, role: 'student' }));
 
@@ -765,7 +805,7 @@ function MessagesTab({ classroomId, classroom }) {
       <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, height: 460 }}>
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9', fontWeight: 600, fontSize: 13 }}>
-            {user.role === 'student' ? 'Teachers' : 'Students'}
+            {user?.role === 'student' ? 'Teachers' : 'Students'}
           </div>
           <div style={{ overflowY: 'auto', height: 'calc(100% - 44px)' }}>
             {contacts.map(c => {
@@ -798,8 +838,8 @@ function MessagesTab({ classroomId, classroom }) {
               <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', fontWeight: 600 }}>{selected.user_name}</div>
               <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column' }}>
                 {thread.map((m, i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.sender_id === user.id ? 'flex-end' : 'flex-start' }}>
-                    <div className={`message-bubble ${m.sender_id === user.id ? 'sent' : 'received'}`}>{m.content}</div>
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.sender_id === user?.id ? 'flex-end' : 'flex-start' }}>
+                    <div className={`message-bubble ${m.sender_id === user?.id ? 'sent' : 'received'}`}>{m.content}</div>
                     <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 4px 6px' }}>{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                 ))}

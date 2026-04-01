@@ -158,7 +158,9 @@ function Users() {
 
   const filtered = users.filter(u => {
     const matchRole = filter === 'all' || u.role === filter;
-    const matchSearch = !search || u.full_name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search
+      || (u.full_name || '').toLowerCase().includes(search.toLowerCase())
+      || (u.email || '').toLowerCase().includes(search.toLowerCase());
     return matchRole && matchSearch;
   });
 

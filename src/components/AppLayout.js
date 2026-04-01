@@ -25,7 +25,7 @@ function NotifPanel({ onClose }) {
 
   const markAll = async () => {
     await api.post('/notifications/read-all').catch(() => {});
-    setNotifs(notifs.map(n => ({ ...n, is_read: true })));
+    setNotifs((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
   const typeIcon = { approval: '👤', success: '✅', assignment: '📝', quiz: '📊', grade: '⭐', message: '💬', zoom: '📹', info: 'ℹ️' };

@@ -17,7 +17,10 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
-    const { access_token, user: userData } = res.data;
+    const { access_token, user: userData } = res.data || {};
+    if (!access_token || !userData?.id) {
+      throw new Error('Invalid login response from server');
+    }
     localStorage.setItem('token', access_token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
