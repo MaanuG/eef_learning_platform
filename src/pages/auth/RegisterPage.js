@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { formatApiError } from '../../utils/api';
 
 const requirements = [
   { test: v => v.length >= 8, label: 'At least 8 characters' },
@@ -28,7 +29,7 @@ export default function RegisterPage() {
       await register({ full_name: form.full_name, email: form.email, password: form.password, role: form.role });
       navigate('/pending');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Registration failed');
+      setError(formatApiError(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }

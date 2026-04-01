@@ -46,7 +46,7 @@ def get_classrooms(db: Session = Depends(get_db), current_user: models.User = De
 
 @router.post("/")
 def create_classroom(req: ClassroomCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth_utils.require_roles(models.UserRole.admin))):
-    classroom = models.Classroom(**req.dict())
+    classroom = models.Classroom(**req.model_dump())
     db.add(classroom)
     db.commit()
     db.refresh(classroom)

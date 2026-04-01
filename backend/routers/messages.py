@@ -108,6 +108,8 @@ def create_zoom_link(req: ZoomLinkCreate, db: Session = Depends(get_db), current
     db.add(link)
     
     classroom = db.query(models.Classroom).filter(models.Classroom.id == req.classroom_id).first()
+    if not classroom:
+        raise HTTPException(404, "Classroom not found")
     for cs in classroom.students:
         notif = models.Notification(user_id=cs.student_id, title="Live Session Posted", message=f"New session in {classroom.name}: {req.title}", type="zoom")
         db.add(notif)

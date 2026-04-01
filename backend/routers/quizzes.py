@@ -25,14 +25,20 @@ def can_teach(user, classroom_id, db):
     return db.query(models.ClassroomEducator).filter_by(classroom_id=classroom_id, educator_id=user.id).first() is not None
 
 def calculate_score(questions, answers):
+    questions = questions or []
+    answers = answers or {}
     if not questions:
         return 0
     correct = 0
     total_auto = 0
     for q in questions:
+        if not isinstance(q, dict):
+            continue
         if q.get("type") in ["multiple_choice", "true_false"]:
             total_auto += 1
-            qid = str(q["id"])
+            qid = str(q.get("id", ""))
+            if not qid:
+                continue
             if answers.get(qid) == q.get("correct_answer"):
                 correct += 1
     if total_auto == 0:
@@ -44,6 +50,7 @@ def get_quizzes(classroom_id: int, db: Session = Depends(get_db), current_user: 
     quizzes = db.query(models.Quiz).filter(models.Quiz.classroom_id == classroom_id).all()
     result = []
     for q in quizzes:
+        q_questions = q.questions if q.questions is not None else []
         my_attempt = None
         if current_user.role == models.UserRole.student:
             attempt = db.query(models.QuizAttempt).filter_by(quiz_id=q.id, student_id=current_user.id).first()
@@ -52,8 +59,8 @@ def get_quizzes(classroom_id: int, db: Session = Depends(get_db), current_user: 
         result.append({
             "id": q.id, "title": q.title, "description": q.description,
             "time_limit_minutes": q.time_limit_minutes, "due_date": q.due_date,
-            "question_count": len(q.questions),
-            "questions": q.questions if (can_teach(current_user, classroom_id, db) or my_attempt) else [{"id": qx["id"], "question": qx["question"], "type": qx["type"], "options": qx.get("options")} for qx in q.questions],
+            "question_count": len(q_questions),
+            "questions": q_questions if (can_teach(current_user, classroom_id, db) or my_attempt) else [{"id": qx.get("id"), "question": qx.get("question"), "type": qx.get("type"), "options": qx.get("options")} for qx in q_questions if isinstance(qx, dict)],
             "my_attempt": my_attempt,
             "attempt_count": len(q.attempts) if can_teach(current_user, classroom_id, db) else None
         })
@@ -63,12 +70,14 @@ def get_quizzes(classroom_id: int, db: Session = Depends(get_db), current_user: 
 def create_quiz(req: QuizCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
     if not can_teach(current_user, req.classroom_id, db):
         raise HTTPException(403, "Not authorized")
-    quiz = models.Quiz(**req.dict())
+    quiz = models.Quiz(**req.model_dump())
     db.add(quiz)
     db.commit()
     db.refresh(quiz)
     
     classroom = db.query(models.Classroom).filter(models.Classroom.id == req.classroom_id).first()
+    if not classroom:
+        return {"id": quiz.id, "title": quiz.title}
     for cs in classroom.students:
         notif = models.Notification(user_id=cs.student_id, title="New Quiz", message=f"New quiz in {classroom.name}: {req.title}", type="quiz")
         db.add(notif)
@@ -83,11 +92,11 @@ def attempt_quiz(quiz_id: int, req: QuizAttemptCreate, db: Session = Depends(get
     existing = db.query(models.QuizAttempt).filter_by(quiz_id=quiz_id, student_id=current_user.id).first()
     if existing:
         raise HTTPException(400, "Already attempted")
-    score = calculate_score(quiz.questions, req.answers)
+    score = calculate_score(quiz.questions if quiz.questions is not None else [], req.answers)
     attempt = models.QuizAttempt(quiz_id=quiz_id, student_id=current_user.id, answers=req.answers, score=score)
     db.add(attempt)
     db.commit()
-    return {"score": score, "answers": req.answers, "questions_with_answers": quiz.questions}
+    return {"score": score, "answers": req.answers, "questions_with_answers": quiz.questions if quiz.questions is not None else []}
 
 @router.get("/{quiz_id}/results")
 def get_results(quiz_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
