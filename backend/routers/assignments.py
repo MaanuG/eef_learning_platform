@@ -47,13 +47,15 @@ def get_assignments(classroom_id: int, db: Session = Depends(get_db), current_us
 def create_assignment(req: AssignmentCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
     if not can_teach(current_user, req.classroom_id, db):
         raise HTTPException(403, "Not authorized")
-    assignment = models.Assignment(**req.dict())
+    assignment = models.Assignment(**req.model_dump())
     db.add(assignment)
     db.commit()
     db.refresh(assignment)
     
     # Notify students
     classroom = db.query(models.Classroom).filter(models.Classroom.id == req.classroom_id).first()
+    if not classroom:
+        return {"id": assignment.id, "title": assignment.title}
     for cs in classroom.students:
         notif = models.Notification(user_id=cs.student_id, title="New Assignment", message=f"New assignment in {classroom.name}: {req.title}", type="assignment")
         db.add(notif)

@@ -28,7 +28,7 @@ def get_videos(classroom_id: int, db: Session = Depends(get_db), current_user: m
 def add_video(req: VideoCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
     if not can_teach(current_user, req.classroom_id, db):
         raise HTTPException(403, "Not authorized")
-    video = models.Video(**req.dict())
+    video = models.Video(**req.model_dump())
     db.add(video)
     db.commit()
     db.refresh(video)

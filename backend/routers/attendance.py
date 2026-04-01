@@ -7,15 +7,13 @@ import models, auth_utils
 
 router = APIRouter()
 
-class AttendanceSessionCreate(BaseModel):
-    classroom_id: int
-    title: str = "Class Session"
-
 class AttendanceRecordInput(BaseModel):
     student_id: int
     status: str  # present, absent, late, excused
 
-class SubmitAttendance(BaseModel):
+class AttendanceSessionSave(BaseModel):
+    classroom_id: int
+    title: str = "Class Session"
     records: List[AttendanceRecordInput]
 
 def can_teach(user, classroom_id, db):
@@ -35,13 +33,13 @@ def get_sessions(classroom_id: int, db: Session = Depends(get_db), current_user:
     return result
 
 @router.post("/session")
-def create_session(req: AttendanceSessionCreate, body: SubmitAttendance, db: Session = Depends(get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
-    if not can_teach(current_user, req.classroom_id, db):
+def create_session(payload: AttendanceSessionSave, db: Session = Depends(get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
+    if not can_teach(current_user, payload.classroom_id, db):
         raise HTTPException(403, "Not authorized")
-    session = models.AttendanceSession(classroom_id=req.classroom_id, title=req.title)
+    session = models.AttendanceSession(classroom_id=payload.classroom_id, title=payload.title)
     db.add(session)
     db.flush()
-    for r in body.records:
+    for r in payload.records:
         record = models.AttendanceRecord(session_id=session.id, student_id=r.student_id, status=r.status)
         db.add(record)
     db.commit()

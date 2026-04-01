@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import AppLayout from '../../components/AppLayout';
-import api from '../../utils/api';
+import api, { formatApiError } from '../../utils/api';
 
 function getYoutubeId(url) {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([^&?\s]+)/);
@@ -53,14 +53,18 @@ function VideosTab({ classroomId, canTeach }) {
           {videos.map(v => (
             <div key={v.id} className="card card-sm" style={{ padding: 0, overflow: 'hidden', cursor: 'pointer' }}>
               {playing === v.id ? (
-                <div style={{ position: 'relative', paddingBottom: '56.25%' }}>
-                  <iframe
-                    src={`https://www.youtube.com/embed/${getYoutubeId(v.youtube_url)}?autoplay=1`}
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
-                    allow="autoplay; encrypted-media"
-                    title={v.title}
-                  />
-                </div>
+                getYoutubeId(v.youtube_url) ? (
+                  <div style={{ position: 'relative', paddingBottom: '56.25%' }}>
+                    <iframe
+                      src={`https://www.youtube.com/embed/${getYoutubeId(v.youtube_url)}?autoplay=1`}
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+                      allow="autoplay; encrypted-media"
+                      title={v.title}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>This video URL cannot be embedded. Check the YouTube link.</div>
+                )
               ) : (
                 <div style={{ position: 'relative', background: '#0f172a' }} onClick={() => setPlaying(v.id)}>
                   <img src={getYoutubeThumbnail(v.youtube_url)} alt={v.title} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', opacity: 0.8, display: 'block' }} />
@@ -320,6 +324,7 @@ function QuizzesTab({ classroomId, canTeach }) {
   };
 
   const submitQuiz = async () => {
+    if (!taking?.id) return;
     try {
       const r = await api.post(`/quizzes/${taking.id}/attempt`, { answers });
       setResult(r.data);
@@ -327,7 +332,7 @@ function QuizzesTab({ classroomId, canTeach }) {
       setTimeLeft(null);
       api.get(`/quizzes/classroom/${classroomId}`).then(r => setQuizzes(r.data));
     } catch (e) {
-      alert(e.response?.data?.detail || 'Error submitting');
+      alert(formatApiError(e, 'Error submitting'));
     }
   };
 
@@ -556,7 +561,7 @@ function AttendanceTab({ classroomId, students, canTeach }) {
 
   const save = async () => {
     const recs = Object.entries(records).map(([student_id, status]) => ({ student_id: parseInt(student_id), status }));
-    await api.post(`/attendance/session?classroom_id=${classroomId}&title=${encodeURIComponent(sessionTitle)}`, { records: recs });
+    await api.post('/attendance/session', { classroom_id: parseInt(classroomId, 10), title: sessionTitle, records: recs });
     api.get(`/attendance/classroom/${classroomId}`).then(r => setSessions(r.data));
     setTaking(false);
   };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { formatApiError } from '../../utils/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -20,7 +21,7 @@ export default function LoginPage() {
       else if (user.role === 'educator') navigate('/educator');
       else navigate('/student');
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Login failed';
+      const msg = formatApiError(err, 'Login failed');
       if (msg.includes('pending')) setError('Your account is pending admin approval. Please check back soon.');
       else if (msg.includes('rejected')) setError('Your account request was not approved. Contact support.');
       else setError(msg);
