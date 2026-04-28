@@ -1,1 +1,4 @@
 node_modules
+
+# Embedded SQLite (created at runtime)
+backend/data/

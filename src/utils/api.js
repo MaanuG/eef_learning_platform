@@ -136,9 +136,20 @@ export function formatApiError(err, fallback = 'Request failed') {
   }
   if (!err?.response) {
     const target = describeFailedRequest(err);
+    const isRemoteHttps =
+      /^https:\/\//i.test(target) && !/localhost|127\.0\.0\.1/i.test(target);
+    if (isRemoteHttps) {
+      return (
+        `Cannot reach the API (${target}). ` +
+        `Your app is already using a hosted API URL—this is not about setting API_ORIGIN in the frontend build. ` +
+        `The browser got no usable response (network error, service asleep/crashed, or SSL). ` +
+        `Check the Render dashboard: web service running, logs for crashes, DATABASE_URL set for Postgres, and try opening the API root in a new tab. Free tiers may sleep until the first request.`
+      );
+    }
     return (
-      `Cannot reach the API${target ? ` (${target})` : ''}. Local dev: run uvicorn on port 8000 and npm start. ` +
-      `Production: set API_ORIGIN / REACT_APP_API_URL to your API origin when building.`
+      `Cannot reach the API${target ? ` (${target})` : ''}. ` +
+      `Local dev: run uvicorn on port 8000 and npm start (proxies /api to the backend). ` +
+      `If your API is on another host (e.g. Render), build with API_ORIGIN or REACT_APP_API_URL set to that API’s origin (https://… only, no /api path).`
     );
   }
   if (d == null) return fallback;

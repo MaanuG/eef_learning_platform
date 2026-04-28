@@ -20,8 +20,14 @@ class User(Base):
     full_name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    role = Column(Enum(UserRole), nullable=False)
-    status = Column(Enum(AccountStatus), default=AccountStatus.pending)
+    role = Column(
+        Enum(UserRole, native_enum=False, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+    )
+    status = Column(
+        Enum(AccountStatus, native_enum=False, values_callable=lambda x: [e.value for e in x]),
+        default=AccountStatus.pending,
+    )
     avatar_color = Column(String, default="#0d9488")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
