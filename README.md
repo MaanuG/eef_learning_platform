@@ -28,10 +28,10 @@ uvicorn main:app --reload --port 8000
 
 **Frontend:**
 ```bash
-cd frontend
 npm install
 npm start
 ```
+(Run from the repo root.)
 
 ---
 
@@ -102,7 +102,7 @@ Or visit: http://localhost:8000/docs and call `/api/auth/seed-admin`
 | Frontend | React 18, React Router v6 |
 | Styling | Custom CSS (Playfair Display + DM Sans fonts) |
 | Backend | FastAPI (Python) |
-| Database | PostgreSQL + SQLAlchemy |
+| Database | PostgreSQL + SQLAlchemy (optional SQLite via `DATABASE_URL`) |
 | Auth | JWT (python-jose) + bcrypt |
 | API | REST |
 
@@ -111,36 +111,22 @@ Or visit: http://localhost:8000/docs and call `/api/auth/seed-admin`
 ## 📁 Project Structure
 
 ```
-eef-app/
+eef_learning_platform/
 ├── backend/
-│   ├── main.py              # FastAPI app entry
-│   ├── models.py            # SQLAlchemy models
-│   ├── database.py          # DB connection
-│   ├── auth_utils.py        # JWT + password utils
+│   ├── main.py
+│   ├── models.py
+│   ├── database.py
+│   ├── auth_utils.py
 │   ├── requirements.txt
 │   └── routers/
-│       ├── auth.py
-│       ├── users.py
-│       ├── classrooms.py
-│       ├── assignments.py
-│       ├── quizzes.py
-│       ├── videos.py
-│       ├── attendance.py
-│       ├── messages.py
-│       └── notifications.py
-├── frontend/
-│   └── src/
-│       ├── App.js
-│       ├── index.css
-│       ├── context/AuthContext.js
-│       ├── utils/api.js
-│       ├── components/AppLayout.js
-│       └── pages/
-│           ├── auth/         LoginPage, RegisterPage, PendingPage
-│           ├── admin/        AdminDashboard
-│           ├── educator/     EducatorDashboard
-│           ├── student/      StudentDashboard
-│           └── classroom/    ClassroomPage (all tabs)
+├── src/
+│   ├── App.js
+│   ├── index.css
+│   ├── context/AuthContext.js
+│   ├── utils/api.js
+│   ├── components/AppLayout.js
+│   └── pages/
+├── Dockerfile
 └── docker-compose.yml
 ```
 

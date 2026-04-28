@@ -129,8 +129,8 @@ export function formatApiError(err, fallback = 'Request failed') {
   if (err?.code === 'ECONNABORTED' || err?.message?.toLowerCase().includes('timeout')) {
     const target = describeFailedRequest(err);
     return (
-      `Request timed out (${target || 'unknown URL'}). No response from the server—check that the API is running and reachable, ` +
-      `and on hosted backends that the database (DATABASE_URL) is up. ` +
+      `Request timed out (${target || 'unknown URL'}). No response from the server—check that the API host is up (e.g. Render not asleep/suspended). ` +
+      `If the API uses Postgres, DATABASE_URL must point at a live database; SQLite needs no separate DB. ` +
       `Wrong passwords or removed accounts return an error immediately; this is not a browser cache issue.`
     );
   }
@@ -139,11 +139,18 @@ export function formatApiError(err, fallback = 'Request failed') {
     const isRemoteHttps =
       /^https:\/\//i.test(target) && !/localhost|127\.0\.0\.1/i.test(target);
     if (isRemoteHttps) {
+      let rootTry = '';
+      try {
+        const u = new URL(target);
+        rootTry = ` Try opening ${u.origin}/ in a new tab.`;
+      } catch {
+        /* ignore */
+      }
       return (
         `Cannot reach the API (${target}). ` +
-        `Your app is already using a hosted API URL—this is not about setting API_ORIGIN in the frontend build. ` +
-        `The browser got no usable response (network error, service asleep/crashed, or SSL). ` +
-        `Check the Render dashboard: web service running, logs for crashes, DATABASE_URL set for Postgres, and try opening the API root in a new tab. Free tiers may sleep until the first request.`
+        `The browser never got an HTTP response from that host—usually the Render web service is asleep, restarting, crashed, or blocked (not a Postgres-vs-SQLite issue). ` +
+        `SQLite runs inside the API only after the server accepts HTTPS; it replaces a separate Postgres database, not the need for a running web service.${rootTry} ` +
+        `Check Render: service running, Logs, billing/suspension. To use embedded SQLite only, remove DATABASE_URL from the API’s environment on Render and redeploy.`
       );
     }
     return (
