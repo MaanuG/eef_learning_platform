@@ -10,7 +10,11 @@ if (!fs.existsSync(buildDir)) {
 }
 
 let origin = process.env.API_ORIGIN || process.env.REACT_APP_API_URL || '';
-origin = String(origin).trim().replace(/\/+$/, '');
+origin = String(origin).trim();
+if ((origin.startsWith('"') && origin.endsWith('"')) || (origin.startsWith("'") && origin.endsWith("'"))) {
+  origin = origin.slice(1, -1).trim();
+}
+origin = origin.replace(/\/+$/, '');
 if (origin.endsWith('/api')) origin = origin.slice(0, -4);
 
 const content = `window.__EEF_API_ORIGIN__=${JSON.stringify(origin)};\n`;
