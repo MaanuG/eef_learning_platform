@@ -10,7 +10,9 @@
     "react-scripts": "5.0.1",
     "date-fns": "^2.30.0"
   },
-  "proxy": "http://127.0.0.1:8000",
+  "devDependencies": {
+    "http-proxy-middleware": "^2.0.9"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build && node scripts/postbuild-api-config.js"
