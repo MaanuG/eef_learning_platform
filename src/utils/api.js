@@ -4,32 +4,43 @@ function stripTrailingSlashes(s) {
   return String(s).replace(/\/+$/, '');
 }
 
+/** Strip accidental quotes from .env (e.g. REACT_APP_API_URL="http://...") */
+function sanitizeEnvUrl(raw) {
+  if (raw == null) return '';
+  let s = String(raw).trim();
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
 function originToApiBase(origin) {
-  let base = stripTrailingSlashes(origin);
+  let base = stripTrailingSlashes(sanitizeEnvUrl(origin));
   if (!base.endsWith('/api')) base = `${base}/api`;
   return base;
 }
 
-function resolveApiBaseURL() {
+/** Resolve at request time so build/runtime api-config.js is always visible (avoids race with module init). */
+export function resolveApiBaseURL() {
   if (typeof window !== 'undefined') {
     const runtime = window.__EEF_API_ORIGIN__;
     if (runtime != null && String(runtime).trim() !== '') {
       return originToApiBase(runtime);
     }
   }
-  const raw = process.env.REACT_APP_API_URL;
-  if (raw != null && String(raw).trim() !== '') {
+  const raw = sanitizeEnvUrl(process.env.REACT_APP_API_URL);
+  if (raw !== '') {
     return originToApiBase(raw);
   }
   return '/api';
 }
 
 const api = axios.create({
-  baseURL: resolveApiBaseURL(),
   timeout: 30000,
 });
 
 api.interceptors.request.use((config) => {
+  config.baseURL = resolveApiBaseURL();
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

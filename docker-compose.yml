@@ -25,7 +25,9 @@ services:
       - ./backend:/app
 
   frontend:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
