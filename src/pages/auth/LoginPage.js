@@ -1,15 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { formatApiError } from '../../utils/api';
+import api, { formatApiError, resolveApiBaseURL } from '../../utils/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  /** null = still checking */
+  const [apiReachable, setApiReachable] = useState(null);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get('/health', { timeout: 20000 })
+      .then(() => {
+        if (!cancelled) setApiReachable(true);
+      })
+      .catch(() => {
+        if (!cancelled) setApiReachable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,6 +58,28 @@ export default function LoginPage() {
           </h2>
           <p style={{ color: '#94a3b8', fontSize: '13px', marginTop: 4 }}>Foundation Learning Platform</p>
         </div>
+
+        {apiReachable === false && (
+          <div
+            style={{
+              background: '#fffbeb',
+              color: '#92400e',
+              padding: '12px 14px',
+              borderRadius: 8,
+              fontSize: 12,
+              marginBottom: 16,
+              border: '1px solid #fde68a',
+              lineHeight: 1.5,
+            }}
+          >
+            <strong>Cannot reach the API.</strong> Requests use{' '}
+            <code style={{ fontSize: 11 }}>{resolveApiBaseURL() || '(unset)'}</code>
+            . Start the backend (<code style={{ fontSize: 11 }}>uvicorn main:app --port 8000</code>) and run{' '}
+            <code style={{ fontSize: 11 }}>npm start</code>, or rebuild with the correct{' '}
+            <code style={{ fontSize: 11 }}>API_ORIGIN</code> / <code style={{ fontSize: 11 }}>REACT_APP_API_URL</code>.
+            For hosted Postgres (e.g. Render), confirm <code style={{ fontSize: 11 }}>DATABASE_URL</code> on the API service.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">

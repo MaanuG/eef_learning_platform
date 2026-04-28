@@ -61,6 +61,23 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+/** Human-readable URL that was requested (for errors). */
+export function describeFailedRequest(err) {
+  const cfg = err?.config;
+  if (!cfg) return '';
+  const base = String(cfg.baseURL || '').replace(/\/+$/, '');
+  const rel = String(cfg.url || '').replace(/^\//, '');
+  if (/^https?:\/\//i.test(base)) {
+    return rel ? `${base}/${rel}` : base;
+  }
+  if (typeof window !== 'undefined') {
+    const parts = [base.replace(/^\//, ''), rel].filter(Boolean);
+    const path = `/${parts.join('/')}`.replace(/\/+/g, '/');
+    return `${window.location.origin}${path}`;
+  }
+  return rel ? `${base}/${rel}` : base;
+}
+
 export function formatApiError(err, fallback = 'Request failed') {
   if (
     err &&
@@ -78,10 +95,19 @@ export function formatApiError(err, fallback = 'Request failed') {
     return 'API not found. If the API is on another domain (e.g. Vercel), set API_ORIGIN or REACT_APP_API_URL on Render to that URL (origin only, no /api).';
   }
   if (err?.code === 'ECONNABORTED' || err?.message?.toLowerCase().includes('timeout')) {
-    return 'Request timed out. Is the API server running?';
+    const target = describeFailedRequest(err);
+    return (
+      `Request timed out (${target || 'unknown URL'}). No response from the server—check that the API is running and reachable, ` +
+      `and on hosted backends that the database (DATABASE_URL) is up. ` +
+      `Wrong passwords or removed accounts return an error immediately; this is not a browser cache issue.`
+    );
   }
   if (!err?.response) {
-    return 'Cannot reach the API. For local dev run the backend (e.g. uvicorn) and use npm start; for production set REACT_APP_API_URL to your API host.';
+    const target = describeFailedRequest(err);
+    return (
+      `Cannot reach the API${target ? ` (${target})` : ''}. Local dev: run uvicorn on port 8000 and npm start. ` +
+      `Production: set API_ORIGIN / REACT_APP_API_URL to your API origin when building.`
+    );
   }
   if (d == null) return fallback;
   if (typeof d === 'string') return d;

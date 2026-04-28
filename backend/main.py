@@ -25,10 +25,21 @@ app.include_router(attendance.router, prefix="/api/attendance", tags=["attendanc
 app.include_router(messages.router, prefix="/api/messages", tags=["messages"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["notifications"])
 
+
+@app.get("/api/health")
+def api_health():
+    """Fast path with no DB — use this to verify the API process is reachable (login still needs the database)."""
+    return {"status": "ok"}
+
+
 @app.on_event("startup")
 async def startup_event():
-    Base.metadata.create_all(bind=engine)
-    create_default_admin()
+    try:
+        Base.metadata.create_all(bind=engine)
+        create_default_admin()
+    except Exception as e:
+        # Avoid hanging forever on misconfigured DATABASE_URL; routes still load so /api/health can respond.
+        print(f"❌ Database startup failed (check DATABASE_URL / Postgres): {e}")
 
 def create_default_admin():
     db = SessionLocal()
