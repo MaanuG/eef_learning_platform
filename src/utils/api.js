@@ -20,11 +20,24 @@ function originToApiBase(origin) {
   return base;
 }
 
+/** Reject junk values that would produce URLs like "undefined/api" and hang until timeout. */
+function isValidHttpOrigin(raw) {
+  const s = sanitizeEnvUrl(raw);
+  if (!s) return false;
+  const lower = s.toLowerCase();
+  if (lower === 'undefined' || lower === 'null') return false;
+  return /^https?:\/\/.+/i.test(s);
+}
+
 /** Resolve at request time so build/runtime api-config.js is always visible (avoids race with module init). */
 export function resolveApiBaseURL() {
   if (typeof window !== 'undefined') {
     const runtime = window.__EEF_API_ORIGIN__;
-    if (runtime != null && String(runtime).trim() !== '') {
+    if (
+      runtime != null &&
+      String(runtime).trim() !== '' &&
+      isValidHttpOrigin(runtime)
+    ) {
       return originToApiBase(runtime);
     }
   }
