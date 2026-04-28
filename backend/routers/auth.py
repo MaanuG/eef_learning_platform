@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel, EmailStr, field_validator
 from database import get_db
 import models, auth_utils
@@ -39,16 +40,17 @@ class CreateAdminRequest(BaseModel):
 
 @router.post("/register")
 def register(req: RegisterRequest, db: Session = Depends(get_db)):
+    normalized_email = req.email.strip().lower()
     if req.role not in ["educator", "student"]:
         raise HTTPException(400, "Role must be educator or student")
-    if db.query(models.User).filter(models.User.email == req.email).first():
+    if db.query(models.User).filter(func.lower(models.User.email) == normalized_email).first():
         raise HTTPException(400, "Email already registered")
     
     import random
     color = random.choice(AVATAR_COLORS)
     user = models.User(
         full_name=req.full_name,
-        email=req.email,
+        email=normalized_email,
         hashed_password=auth_utils.hash_password(req.password),
         role=models.UserRole(req.role),
         status=models.AccountStatus.pending,
@@ -73,7 +75,8 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
 
 @router.post("/login")
 def login(req: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == req.email).first()
+    normalized_email = req.email.strip().lower()
+    user = db.query(models.User).filter(func.lower(models.User.email) == normalized_email).first()
     if not user or not auth_utils.verify_password(req.password, user.hashed_password):
         raise HTTPException(401, "Invalid credentials")
     
