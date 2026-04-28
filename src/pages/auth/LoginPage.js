@@ -43,7 +43,7 @@ export default function LoginPage() {
                 <p className="auth-eyebrow">Empowering Education Foundation</p>
                 <h1 className="auth-title">Sign in</h1>
                 <p className="auth-lede">
-                  Welcome back. Use your school email and password to open your dashboard.
+                  Welcome back. Use your account credentials to open your dashboard.
                 </p>
               </div>
             </header>
@@ -57,7 +57,7 @@ export default function LoginPage() {
                   id="login-email"
                   className="form-input"
                   type="email"
-                  placeholder="name@school.org"
+                  placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"

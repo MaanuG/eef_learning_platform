@@ -73,13 +73,13 @@ export default function RegisterPage() {
 
               <div className="form-group">
                 <label className="form-label" htmlFor="reg-email">
-                  School email
+                  Email
                 </label>
                 <input
                   id="reg-email"
                   className="form-input"
                   type="email"
-                  placeholder="name@school.org"
+                  placeholder="you@example.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   autoComplete="email"
