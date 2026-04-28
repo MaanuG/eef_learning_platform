@@ -13,7 +13,6 @@ const navItems = [
   { icon: '📚', label: 'All Classes', path: '/admin/my-classes' },
 ];
 
-/* ── OVERVIEW ── */
 function Overview() {
   const [stats, setStats] = useState({ pending: 0, users: 0, classrooms: 0, educators: 0 });
   const [pending, setPending] = useState([]);
@@ -115,7 +114,6 @@ function Overview() {
   );
 }
 
-/* ── APPROVALS ── */
 function Approvals() {
   const [pending, setPending] = useState([]);
   useEffect(() => { api.get('/users/pending').then(r => setPending(r.data)).catch(() => {}); }, []);
@@ -149,7 +147,6 @@ function Approvals() {
   );
 }
 
-/* ── USERS ── */
 function Users() {
   const [users, setUsers] = useState([]);
   const [filter, setFilter] = useState('all');
@@ -207,7 +204,6 @@ function Users() {
   );
 }
 
-/* ── CLASSROOMS ── */
 function Classrooms() {
   const [classrooms, setClassrooms] = useState([]);
   const [educators, setEducators] = useState([]);
@@ -292,7 +288,6 @@ function Classrooms() {
         )}
       </div>
 
-      {/* Create Modal */}
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
@@ -314,7 +309,6 @@ function Classrooms() {
         </div>
       )}
 
-      {/* Manage Modal */}
       {showManage && (
         <div className="modal-overlay" onClick={() => setShowManage(null)}>
           <div className="modal" style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
@@ -326,7 +320,6 @@ function Classrooms() {
               <button onClick={() => setShowManage(null)} style={{ background: '#f1f5f9', border: 'none', cursor: 'pointer', fontSize: 18, color: '#64748b', width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
 
-            {/* Educators section */}
             <div style={{ marginBottom: 20 }}>
               <label className="form-label" style={{ marginBottom: 8 }}>Add Educator</label>
               <select className="form-select" onChange={e => { if (e.target.value) { assignEducator(showManage.id, e.target.value); e.target.value = ''; } }} defaultValue="">
@@ -350,7 +343,6 @@ function Classrooms() {
 
             <div className="divider" />
 
-            {/* Students section */}
             <div>
               <label className="form-label" style={{ marginBottom: 8 }}>Add Student</label>
               <select className="form-select" onChange={e => { if (e.target.value) { assignStudent(showManage.id, e.target.value); e.target.value = ''; } }} defaultValue="">
@@ -381,7 +373,6 @@ function Classrooms() {
   );
 }
 
-/* ── MY CLASSES ── */
 function MyClasses() {
   const [classrooms, setClassrooms] = useState([]);
   const navigate = useNavigate();

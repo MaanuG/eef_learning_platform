@@ -1,12 +1,5 @@
 import axios from 'axios';
 
-/**
- * Backend serves under `/api/...` (e.g. `/api/auth/login`).
- * Resolution order:
- * 1) window.__EEF_API_ORIGIN__ — set by public/api-config.js (see postbuild script for Render).
- * 2) REACT_APP_API_URL — baked in at `react-scripts build`.
- * 3) `/api` — CRA dev proxy → backend; production needs (1) or (2) when API is on another host.
- */
 function stripTrailingSlashes(s) {
   return String(s).replace(/\/+$/, '');
 }
@@ -44,9 +37,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-/** FastAPI may return `detail` as a string or a list of validation errors. */
 export function formatApiError(err, fallback = 'Request failed') {
-  // Plain Error from app code (not axios) — e.g. malformed login success payload
   if (
     err &&
     err.response == null &&

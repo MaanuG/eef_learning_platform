@@ -14,7 +14,6 @@ function getYoutubeThumbnail(url) {
   return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
 }
 
-/* ===== VIDEOS TAB ===== */
 function VideosTab({ classroomId, canTeach }) {
   const [videos, setVideos] = useState([]);
   const [show, setShow] = useState(false);
@@ -121,7 +120,6 @@ function VideosTab({ classroomId, canTeach }) {
   );
 }
 
-/* ===== ASSIGNMENTS TAB ===== */
 function AssignmentsTab({ classroomId, canTeach }) {
   const [assignments, setAssignments] = useState([]);
   const [show, setShow] = useState(false);
@@ -310,7 +308,6 @@ function AssignmentsTab({ classroomId, canTeach }) {
   );
 }
 
-/* ===== QUIZZES TAB ===== */
 function QuizzesTab({ classroomId, canTeach }) {
   const [quizzes, setQuizzes] = useState([]);
   const [show, setShow] = useState(false);
@@ -423,7 +420,6 @@ function QuizzesTab({ classroomId, canTeach }) {
         </div>
       ))}
 
-      {/* Taking quiz modal */}
       {taking && (
         <div className="modal-overlay">
           <div className="modal" style={{ maxWidth: 640 }}>
@@ -474,7 +470,6 @@ function QuizzesTab({ classroomId, canTeach }) {
         </div>
       )}
 
-      {/* Result modal */}
       {result && (
         <div className="modal-overlay" onClick={() => setResult(null)}>
           <div className="modal" style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
@@ -499,7 +494,6 @@ function QuizzesTab({ classroomId, canTeach }) {
         </div>
       )}
 
-      {/* Create quiz modal */}
       {show && (
         <div className="modal-overlay" onClick={() => setShow(false)}>
           <div className="modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()}>
@@ -583,7 +577,6 @@ function QuizzesTab({ classroomId, canTeach }) {
   );
 }
 
-/* ===== ATTENDANCE TAB ===== */
 function AttendanceTab({ classroomId, students, canTeach }) {
   const [sessions, setSessions] = useState([]);
   const [taking, setTaking] = useState(false);
@@ -688,7 +681,6 @@ function AttendanceTab({ classroomId, students, canTeach }) {
   );
 }
 
-/* ===== ZOOM TAB ===== */
 function ZoomTab({ classroomId, canTeach }) {
   const [links, setLinks] = useState([]);
   const [show, setShow] = useState(false);
@@ -772,7 +764,6 @@ function ZoomTab({ classroomId, canTeach }) {
   );
 }
 
-/* ===== MESSAGES TAB ===== */
 function MessagesTab({ classroomId, classroom }) {
   const [conversations, setConversations] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -794,7 +785,6 @@ function MessagesTab({ classroomId, classroom }) {
     setNewMsg('');
   };
 
-  // Get people in this class to message
   const contacts = user?.role === 'student'
     ? (classroom?.educators || []).map(e => ({ user_id: e.id, user_name: e.full_name, avatar_color: e.avatar_color, role: 'educator' }))
     : (classroom?.students || []).map(s => ({ user_id: s.id, user_name: s.full_name, avatar_color: s.avatar_color, role: 'student' }));
@@ -857,7 +847,6 @@ function MessagesTab({ classroomId, classroom }) {
   );
 }
 
-/* ===== MAIN CLASSROOM PAGE ===== */
 export default function ClassroomPage() {
   const { id } = useParams();
   const { user } = useAuth();

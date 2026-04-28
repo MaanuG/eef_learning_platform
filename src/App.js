@@ -2,18 +2,14 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './index.css';
-//
-// Auth pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import PendingPage from './pages/auth/PendingPage';
 
-// Dashboards
 import AdminDashboard from './pages/admin/AdminDashboard';
 import EducatorDashboard from './pages/educator/EducatorDashboard';
 import StudentDashboard from './pages/student/StudentDashboard';
 
-// Classroom views
 import ClassroomPage from './pages/classroom/ClassroomPage';
 
 function ProtectedRoute({ children, roles }) {

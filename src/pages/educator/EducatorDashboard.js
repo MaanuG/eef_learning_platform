@@ -12,7 +12,6 @@ const navItems = [
   { icon: '💬', label: 'Messages', path: '/educator/messages' },
 ];
 
-/* ── SCHEDULE ── */
 function Schedule() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +74,6 @@ function Schedule() {
   );
 }
 
-/* ── HOMEWORK & QUIZZES ── */
 function Homework() {
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState('all');
@@ -140,7 +138,6 @@ function Homework() {
   );
 }
 
-/* ── OVERVIEW ── */
 function Overview() {
   const [classrooms, setClassrooms] = useState([]);
   const [upcomingSessions, setUpcomingSessions] = useState([]);
@@ -259,7 +256,6 @@ function Overview() {
   );
 }
 
-/* ── MESSAGES ── */
 function Messages() {
   const [conversations, setConversations] = useState([]);
   const [selected, setSelected] = useState(null);
