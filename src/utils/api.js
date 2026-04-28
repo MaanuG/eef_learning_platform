@@ -29,6 +29,38 @@ function isValidHttpOrigin(raw) {
   return /^https?:\/\/.+/i.test(s);
 }
 
+function isLikelyLocalDevHostname(hostname) {
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+  const oct = hostname.split('.').map((x) => parseInt(x, 10));
+  if (oct.length !== 4 || oct.some((n) => Number.isNaN(n))) return false;
+  const [a, b] = oct;
+  if (a === 10) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  return false;
+}
+
+/**
+ * Deployed sites (Vercel, etc.) must point the SPA at the real API origin.
+ * If neither api-config nor REACT_APP_* provides an https URL, the app only hits same-origin /api — which usually has no server → timeouts.
+ */
+export function isHostedFrontendMissingApiOrigin() {
+  if (typeof window === 'undefined') return false;
+  const { hostname } = window.location;
+  if (isLikelyLocalDevHostname(hostname)) return false;
+
+  const runtime = window.__EEF_API_ORIGIN__;
+  const runtimeOk =
+    runtime != null &&
+    String(runtime).trim() !== '' &&
+    isValidHttpOrigin(runtime);
+
+  const envUrl = sanitizeEnvUrl(process.env.REACT_APP_API_URL);
+  const envAbsolute = /^https?:\/\//i.test(envUrl);
+
+  return !runtimeOk && !envAbsolute;
+}
+
 /** Resolve at request time so build/runtime api-config.js is always visible (avoids race with module init). */
 export function resolveApiBaseURL() {
   if (typeof window !== 'undefined') {

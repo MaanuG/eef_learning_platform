@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import api, { formatApiError, resolveApiBaseURL } from '../../utils/api';
+import api, {
+  formatApiError,
+  resolveApiBaseURL,
+  isHostedFrontendMissingApiOrigin,
+} from '../../utils/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -31,6 +35,14 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (isHostedFrontendMissingApiOrigin()) {
+      setError(
+        'This site was built without an API URL. On your hosting provider set API_ORIGIN (build-time) or REACT_APP_API_URL ' +
+          'to your FastAPI origin (example: https://your-api.onrender.com — no /api suffix). Then rebuild and redeploy the frontend. ' +
+          'Otherwise login calls /api on this domain only and nothing answers.'
+      );
+      return;
+    }
     setLoading(true);
     try {
       const user = await login(email, password);
@@ -58,6 +70,26 @@ export default function LoginPage() {
           </h2>
           <p style={{ color: '#94a3b8', fontSize: '13px', marginTop: 4 }}>Foundation Learning Platform</p>
         </div>
+
+        {isHostedFrontendMissingApiOrigin() && (
+          <div
+            style={{
+              background: '#fef2f2',
+              color: '#991b1b',
+              padding: '14px 16px',
+              borderRadius: 8,
+              fontSize: 12,
+              marginBottom: 16,
+              border: '1px solid #fecaca',
+              lineHeight: 1.55,
+            }}
+          >
+            <strong>API URL not configured for this deployment.</strong> Set{' '}
+            <code style={{ fontSize: 11 }}>API_ORIGIN</code> or{' '}
+            <code style={{ fontSize: 11 }}>REACT_APP_API_URL=https://your-backend-host</code> when you build the frontend, then redeploy.
+            Value must be the API <em>origin only</em> (no <code style={{ fontSize: 11 }}>/api</code> path).
+          </div>
+        )}
 
         {apiReachable === false && (
           <div
